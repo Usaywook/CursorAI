@@ -1,0 +1,52 @@
+---
+description: CursorAI 학습 프로젝트 전체 구조, 학습 단계 순서, 각 폴더 목적
+alwaysApply: true
+---
+
+# CursorAI 학습 프로젝트
+
+이 저장소는 **Cursor AI를 활용한 소프트웨어 개발 학습 커리큘럼**이다.
+마방진(MagicSquare) 도메인을 실습 소재로 삼아 문제 정의 → 설계 → TDD 구현 → 완성까지 단계별로 진행한다.
+
+## 학습 단계 순서
+
+| 단계 | 폴더 | 핵심 목표 |
+|------|------|-----------|
+| **1** | `src/1-1.,MagicSquare_1004` | 문제 정의 → Dual-Track TDD 설계 → Cursor Rules + 첫 엔티티 |
+| **2** | `src/1-2.MagicSquare_1004_개선` | 패키지 구조 리팩터 + User 엔티티 개선 (email 추가) |
+| **3** | `src/2.Refrigerator` | 실전 웹앱 (FastAPI + OpenRouter Vision + JWT 인증) |
+| **4** | `src/4.MagicSquare_1004_完` | 마방진 전체 완성 (ECB + Dual-Track TDD + PyQt + Golden Master) |
+
+## 프로젝트별 핵심 특징
+
+### 1-1 (워밍업)
+- `Prompting/` : 재사용 가능한 AI 프롬프트 스크립트 3개
+- `Report/` : 각 단계 설계 결과 보고서 3개
+- `src/entity/user.py` : 첫 번째 ECB 엔티티 (User)
+- 다음 단계 진행 전 반드시 Report 01~03 독해 권장
+
+### 1-2 (코드 개선)
+- `src/magicsquare/entity/models/user.py` : 네임스페이스 패키지 구조
+- User에 email 필드 + 검증 로직 추가
+- 보고서·프롬프트 없음 — 코드 비교 학습용
+
+### 2.Refrigerator (실전 프로젝트)
+- FastAPI + SQLite + JWT (Step 1·3 구현, Step 2 미완성)
+- `PRD_step1~3.md` : 단계별 기획서
+- `app/openrouter_client.py` : Vision AI 연동
+- 실행: `python -m uvicorn app.main:app --port 8000` (`.env`에 `OPENROUTER_API_KEY` 필요)
+
+### 4.完 (완성 캡스톤)
+- `cursor/rules/*.mdc` → `.cursor/rules/`에 복사 시 활성화
+- `cursor/agents/*.md` → `.cursor/agents/`에 복사 시 활성화
+- 47개 pytest (일부 RED 스켈레톤 포함)
+- `docs/PRD_MagicSquare.md` : 전체 SSOT 기획서
+
+## 공통 보조 파일
+
+- `src/magic_square_tc.xlsx` : 마방진 테스트 케이스 명세서 24개 (find_blank_coords / is_magic_square / solution / 예외처리)
+
+## 에이전트·스킬 활용
+
+- `@cursorai-guide` : 이 프로젝트 전반에 대한 Q&A 및 단계별 가이드
+- `/cursorai-step-guide` : 각 단계에서 무엇을 해야 하는지 상세 절차 안내

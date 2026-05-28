@@ -1,0 +1,54 @@
+---
+description: RBAC TDD 워크플로우 — RED→GREEN→REFACTOR→GIT 단계 규칙 및 금지 패턴
+alwaysApply: false
+globs: "src/rbac_tdd/**/*.py,tests/rbac/**/*.py"
+---
+
+# RBAC TDD 워크플로우 규칙
+
+## 응답 시작 선언 (필수)
+
+코드·테스트 제안 전 반드시 한 줄 선언:
+
+```
+Phase: red|green|refactor | Layer: entity|control|boundary | TestID: RB-XXX-00
+```
+
+## 단계별 규칙
+
+### RED — 실패 테스트 먼저
+
+- 테스트를 먼저 작성하고 `pytest` 실행 → FAIL 확인 후 다음 단계
+- production 코드 작성 금지 (stub/pass만 허용)
+- 한 번에 하나의 실패 테스트만 추가
+- 테스트 ID 형식: `RB-ENT-{nn}` (entity), `RB-CTL-{nn}` (control), `RB-BND-{nn}` (boundary)
+
+### GREEN — 최소 구현
+
+- 현재 RED 테스트를 통과하는 **최소 코드만** 작성
+- 리팩터링·추가 기능·불필요한 추상화 금지
+- `pytest {대상_테스트}` → PASS 확인 필수
+
+### REFACTOR — 구조 개선
+
+- 전체 pytest GREEN 상태에서만 진행
+- 동작·공개 API 불변 (테스트 수정 없이 리팩터링)
+- DB 기반 동적 권한, JWT claim 연동은 이 단계에서 진행
+- 커버리지 **80% 이상** 유지
+
+### GIT — C2C 추적 커밋
+
+- 커밋 메시지 형식: `{type}({scope}): {description} [TestID: RB-XXX-nn]`
+- 단계별 커밋: RED 완료, GREEN 완료, REFACTOR 완료 각각 커밋
+- PR 본문에 C2C Traceability 표 포함 필수
+
+## 금지 패턴
+
+| 패턴 | 이유 | 대안 |
+|------|------|------|
+| RED 없이 production 코드 작성 | TDD 위반 | 실패 테스트 먼저 |
+| 하드코딩된 역할 문자열 ("admin") | 변경 취약 | `Role` 엔티티·Enum 사용 |
+| `except:` / bare except | 오류 삼킴 | `PermissionDeniedError` 구체 예외 |
+| entity → boundary import | ECB 방향 위반 | 의존성 방향 준수 |
+| 테스트 skip·xfail로 GREEN 맞추기 | 가짜 GREEN | production 코드 수정 |
+| print() 디버깅 | 테스트 오염 | pytest assertion, logging |

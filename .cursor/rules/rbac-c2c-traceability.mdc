@@ -1,0 +1,114 @@
+---
+description: C2C(Concept-to-Code) Traceability — 역할 개념→실패 테스트→최소 구현→리팩터링까지 의미 소실 없이 추적하는 규칙. Git 커밋 메시지 형식, PR 본문 템플릿, TestID 연결 방식 정의.
+alwaysApply: false
+globs: "src/rbac_tdd/**/*.py,tests/rbac/**/*.py"
+---
+
+# C2C Traceability 규칙
+
+## 개념
+
+**C2C(Concept-to-Code)**: 비즈니스 요구사항 개념이 테스트 ID를 통해
+구현 코드까지 단절 없이 추적 가능한 상태.
+
+```
+역할 개념(Role Concept)
+    ↓ [TestID]
+실패 테스트(Failing Test)
+    ↓ [TestID]
+최소 구현(Minimal Code)
+    ↓ [TestID]
+리팩터링(Refactored Code)
+    ↓ [TestID]
+Git 커밋 (커밋 메시지에 TestID 포함)
+    ↓
+PR Traceability 표
+```
+
+## TestID 체계
+
+| 레이어 | 접두사 | 예시 |
+|--------|--------|------|
+| Entity | `RB-ENT-` | `RB-ENT-01` Role 생성, `RB-ENT-02` Permission 할당 |
+| Control | `RB-CTL-` | `RB-CTL-01` viewer → DELETE 거부, `RB-CTL-02` admin → DELETE 허용 |
+| Boundary | `RB-BND-` | `RB-BND-01` 메뉴 가시성, `RB-BND-02` JWT Role 읽기 |
+
+## 테스트 파일 네이밍
+
+```
+tests/rbac/entity/test_rb_ent_01_role_creation.py
+tests/rbac/control/test_rb_ctl_01_permission_denied.py
+tests/rbac/boundary/test_rb_bnd_01_menu_visibility.py
+```
+
+## Git 커밋 메시지 형식
+
+```
+{type}({scope}): {description}
+
+TestID: {RB-XXX-nn}
+Phase: red|green|refactor
+Layer: entity|control|boundary
+
+- 변경 내용 bullet 1
+- 변경 내용 bullet 2
+```
+
+**type**: `test`(RED), `feat`(GREEN), `refactor`(REFACTOR)
+**scope**: `entity`, `control`, `boundary`, `rbac`
+
+### 예시
+
+```
+test(entity): RB-ENT-01 Role·Permission 생성 실패 테스트
+
+TestID: RB-ENT-01
+Phase: red
+Layer: entity
+
+- Role 생성 시 name 필수 검증 실패 테스트
+- Permission.DELETE 할당 실패 테스트
+```
+
+```
+feat(control): RB-CTL-01 viewer DELETE 권한 거부 최소 구현
+
+TestID: RB-CTL-01
+Phase: green
+Layer: control
+
+- has_permission() 함수 최소 구현
+- menu_visibility 딕셔너리 반환
+```
+
+## PR 본문 C2C Traceability 표 (필수)
+
+PR 생성 시 본문에 아래 표 포함:
+
+```markdown
+## C2C Traceability
+
+| 역할 개념 | TestID | 테스트 함수 | 구현 파일 | 커밋 |
+|-----------|--------|-------------|-----------|------|
+| viewer는 DELETE 불가 | RB-CTL-01 | test_viewer_cannot_delete | control/permission_checker.py | abc1234 |
+| admin은 DELETE 가능 | RB-CTL-02 | test_admin_can_delete | control/permission_checker.py | abc1234 |
+| 메뉴 가시성 제어 | RB-BND-01 | test_menu_visibility_by_role | boundary/menu_api.py | def5678 |
+| JWT Role 읽기 | RB-BND-02 | test_jwt_role_extraction | boundary/auth_middleware.py | ghi9012 |
+
+## 단계별 커밋 이력
+
+| Phase | 커밋 | TestID | 설명 |
+|-------|------|--------|------|
+| RED | abc1234 | RB-ENT-01 | Role·Permission 실패 테스트 |
+| RED | bcd2345 | RB-CTL-01 | viewer DELETE 거부 실패 테스트 |
+| GREEN | cde3456 | RB-CTL-01 | has_permission 최소 구현 |
+| REFACTOR | def4567 | RB-BND-02 | JWT claim 기반 Role 읽기 |
+```
+
+## 커밋 전 체크리스트
+
+- [ ] TestID가 커밋 메시지에 명시됨
+- [ ] Phase가 명시됨 (red/green/refactor)
+- [ ] 해당 TestID의 테스트 함수가 존재함
+- [ ] GREEN 커밋: 대상 테스트 PASS 확인
+- [ ] REFACTOR 커밋: 전체 pytest GREEN 확인

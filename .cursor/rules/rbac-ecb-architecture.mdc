@@ -1,0 +1,93 @@
+---
+description: RBAC ECB 3레이어 아키텍처 — Entity(Role·Permission·User), Control(PermissionChecker), Boundary(MenuVisibility·AuthMiddleware) 정의 및 의존성 방향
+alwaysApply: false
+globs: "src/rbac_tdd/**/*.py"
+---
+
+# RBAC ECB 아키텍처
+
+## 레이어 정의
+
+### Entity — 도메인 (순수 Python, 외부 의존 없음)
+
+```
+src/rbac_tdd/entity/
+├── role.py          # Role(name, permissions: set[Permission])
+├── permission.py    # Permission Enum: VIEW, CREATE, UPDATE, DELETE
+└── user.py          # User(user_id, roles: list[Role])
+```
+
+- **역할**: 권한 개념의 불변식·도메인 규칙 (누가 무엇을 할 수 있는가)
+- **금지**: DB·HTTP·JWT·외부 라이브러리 직접 의존
+
+### Control — 비즈니스 로직
+
+```
+src/rbac_tdd/control/
+├── permission_checker.py   # has_permission(user, permission) → bool
+└── menu_visibility.py      # get_visible_menus(user) → list[str]
+```
+
+- **역할**: 권한 검사 유스케이스 오케스트레이션
+- **의존**: entity만 (도메인 방향)
+- **금지**: boundary 구체 클래스 직접 의존
+
+### Boundary — 외부 접점
+
+```
+src/rbac_tdd/boundary/
+├── auth_middleware.py    # JWT → User 변환, 403 응답 생성
+└── menu_api.py          # HTTP endpoint: GET /menus (가시성 필터)
+```
+
+- **역할**: HTTP/JWT/DB 어댑터, 외부 → 도메인 변환
+- **금지**: 도메인 알고리즘(권한 판단) 직접 구현
+
+## 의존성 방향
+
+```
+boundary → control → entity
+    ↑          ↑
+  JWT·DB    PermCheck
+```
+
+**허용**: `boundary→control`, `boundary→entity(VO)`, `control→entity`
+**금지**: `entity→control`, `entity→boundary`, `control→boundary`
+
+## 권장 디렉터리 트리
+
+```
+src/rbac_tdd/
+├── entity/
+│   ├── __init__.py
+│   ├── permission.py
+│   ├── role.py
+│   └── user.py
+├── control/
+│   ├── __init__.py
+│   ├── permission_checker.py
+│   └── menu_visibility.py
+├── boundary/
+│   ├── __init__.py
+│   ├── auth_middleware.py
+│   └── menu_api.py
+└── exceptions/
+    ├── __init__.py
+    └── auth_errors.py   # PermissionDeniedError(DomainError)
+
+tests/rbac/
+├── entity/
+│   └── test_rb_ent_*.py
+├── control/
+│   └── test_rb_ctl_*.py
+└── boundary/
+    └── test_rb_bnd_*.py
+```
+
+## RBAC 핵심 불변식
+
+- I1: 권한 없는 사용자의 액션 → `PermissionDeniedError` (403)
+- I2: Role은 1개 이상의 Permission을 가진다
+- I3: User는 0개 이상의 Role을 가진다
+- I4: 상위 Role의 Permission은 하위 Role을 포함한다 (계층 구조)
+- I5: Permission 검사는 entity 레이어에서만 수행 (boundary에서 직접 판단 금지)
